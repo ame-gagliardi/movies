@@ -1,0 +1,89 @@
+---
+title: "Streaming platform"
+author: "Amedeo Gagliardi"
+date: "19/5/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "C:/Users/amega/OneDrive/Desktop/R_Learning/Personal/kaggle/Netflix/")
+
+library(tidyverse)
+
+movies <- as_tibble(read.delim("C:/Users/amega/OneDrive/Desktop/R_Learning/Personal/kaggle/Netflix/Data/movies.csv")) %>% 
+  dplyr::mutate(platform = toupper(platform))
+genres <- as_tibble(read.delim("C:/Users/amega/OneDrive/Desktop/R_Learning/Personal/kaggle/Netflix/Data/genres.csv"))
+countries <- as_tibble(read.delim("C:/Users/amega/OneDrive/Desktop/R_Learning/Personal/kaggle/Netflix/Data/countries.csv"))
+
+```
+
+I have put together the content database of Netflix, Disney Plus, Amazon Prime and Hulu.
+The whole dataset contains data for `r nrow(movies) ` and have the following information for each movies: *Title*, *Type*, *Director*, *Cast*, *Country*, *Date of insertion the platform catalogue*, *Date of release*, *Rating*. *Duration* and *Genres*.
+
+I have created two separate tables to manage more in detail the countries of production and the genre of the movie/TV show. Regarding the genres, since the single streaming platform use similar but slightly different names to indicate the genres I have modified their name a little to harmonize them, as example: *Action & adventure* on Neflix and *Action-Adventure* on Disney+ became *Action and Adventure*.
+
+**Netflix** launched its streaming platform in 2008 as well as **Hulu**. 
+**Amazon prime video** debuted in 2006 in United States, with the former name of **Amazon Unbox** and change its designationto the current name in 2018.
+Among these big four, **Disney Plus** is the most recent, being launched in 2019.
+
+The following plot shows the total content of each platform (*updated to 6 months ago*)
+
+```{r Platform Content, echo=FALSE, message=FALSE, warning=FALSE}
+movies %>% 
+  dplyr::group_by(platform) %>% 
+  dplyr::summarise(count = n()) %>% 
+  ggplot(aes(x = reorder(platform, -count),  y = count, fill = platform)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_label(aes(label = count), vjust = 0) + 
+  coord_flip() +
+  theme_bw() + 
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "none")
+```
+
+As we can see **Amazon** have the greatest amount of content followed by **Netflix**. **Disney Plus** trails at the end of the ladder, but we must take account of its relative young age compared to the other streming platform.
+
+We can breakdown each platform content into the two main categories, *Movies* and *TV Shows*.
+
+```{r Platform Beakdown, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+movies %>% 
+  dplyr::group_by(platform, type) %>% 
+  dplyr::summarise(count = n()) %>% 
+  ggplot(aes(x = platform, y = count, fill = type)) +
+  geom_bar(position = "dodge", stat = "identity") + 
+  geom_text(aes(x = platform, label = count), position = position_dodge(0.9), hjust = 0) +
+  coord_flip() + 
+  scale_fill_discrete(name = "Platform") +
+  theme_bw() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+
+group_content <- movies %>% group_by(platform, type) %>% summarise(count = n())
+
+
+```
+
+The only platform with more TV Shows than movies is **Hulu**. Catalogue of **Netflix** (`r round(6130/(6130+2676)*100, 2)`%) and **Amazon** (`r round(7814/(7814+1854)*100, 2)`%) is formed vastly by movies.
+
+Now we can move to look 
+
+```{r Movies and shows added, echo=FALSE}
+
+movies %>% 
+  select(type, title, date_added, platform) %>% 
+  mutate(date_added = lubridate::mdy(date_added)) %>% 
+  arrange(date_added) %>% 
+  group_by(platform, date_added) %>% 
+  summarise(count = n()) %>% 
+  mutate(cs=cumsum(count)) %>% 
+  ggplot(aes(x = date_added, y = cs, color = platform)) +
+  geom_line() + 
+  facet_wrap(~ platform)
+
+```
+
+
+
